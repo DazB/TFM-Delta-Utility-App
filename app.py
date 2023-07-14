@@ -32,6 +32,9 @@ import time
 import re
 import subprocess
 from datetime import datetime
+from gooey import Gooey
+from gooey import GooeyParser
+
 
 # Get IP of the local machine
 DELTA_IP = socket.gethostbyname(socket.gethostname())
@@ -41,8 +44,21 @@ DELTA_PORT = 23
 # Send play flag. If true, will send command to play to Delta
 send_play = False
 
+@Gooey(program_name='Delta Command Utility App v1'
+       )
 def main():
     """Main app function"""
+    desc = ("This app translates the incoming RSS commands \n" +
+        "into commands compatible with the 7th Sense Server. \n" +
+        "IT MUST REMAIN RUNNING WHILE THE RIDE IS IN OPERATION. \n" +
+        "IF IT IS CLOSED, THE RSS CANNOT PLAY THE VIDEO \n")
+    parser = GooeyParser(description=desc)
+    verbosity = parser.add_mutually_exclusive_group()
+    verbosity.add_argument('Test',
+                           action="store_true", help="Show more details")
+    verbosity.add_argument('testse',
+                           action="store_true", help="Only output on error")
+    parser.parse_args()
 
     # Run the ipconfig command and capture the output
     output = subprocess.check_output(['ipconfig']).decode('utf-8')
@@ -149,12 +165,6 @@ def log(message: str):
 
 
 if __name__ == "__main__":
-    print("---------------------Delta Command Utility App---------------------\n" +
-        "This app acts translates the incoming RSS commands \n" +
-        "into commands compatible with the 7th Sense Server. \n\n" +
-        "IT MUST REMAIN RUNNING WHILE THE RIDE IS IN OPERATION.\n" +
-        "IF IT IS CLOSED, THE RSS CANNOT PLAY THE VIDEO \n\n" +
-        "To exit the app, use CTRL + C, or close the terminal")
     main()
     log("Delta Command Utility App closing. COMMANDS FROM RSS WILL NO LONGER BE ABLE TO CONTROL THE DELTA SERVER. \n" + 
         "If unintentional, re-run the app (python app.py in command line), or restart the server. \n" + 
