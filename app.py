@@ -193,10 +193,10 @@ def client_thread_function():
                     send_play = False
                     try:
                         # Send Delta Play command
-                        clientsocket.send(b'Play')  
-                        log("Sent play command to Delta")
+                        clientsocket.send(b'PLAY')  
+                        log("Sent Play command to Delta")
                     except:
-                        log("Error sending play command. Delta Server not running? Will attempt reconnect")
+                        log("Error sending Play command. Delta Server not running? Will attempt reconnect")
                         break
                 time.sleep(0.01)
         except:
