@@ -182,11 +182,12 @@ def service_connection(key, mask, sel: selectors.DefaultSelector):
 # Handles client connection to the Delta app
 def client_thread_function():
     global send_play
+    global delta_ip
     while True:
         try: 
             # Setup client socket so can send data to Delta Server.
             clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            clientsocket.connect(('localhost', DELTA_PORT))
+            clientsocket.connect((delta_ip, DELTA_PORT))
             log("Connected to Delta Server App")
             while True:
                 if send_play:
