@@ -36,6 +36,9 @@ from gooey import GooeyParser
 import configparser
 import os
 import psutil
+import signal
+import sys
+
 
 PROGRAM_NAME = 'Delta Command Utility App v1'
 
@@ -54,11 +57,19 @@ send_play = False
 delta_ip = ''
 
 # Main program
-@Gooey(program_name=PROGRAM_NAME, auto_start=True, disable_stop_button=True, header_show_subtitle=False)
+@Gooey(program_name=PROGRAM_NAME, 
+       auto_start=True,
+       shutdown_signal=signal.SIGTERM,
+       disable_stop_button=True, 
+       header_show_subtitle=False,
+       show_failure_modal=False,
+       show_stop_warning=False
+       )
 def main():
     desc = ("This app translates the incoming RSS commands \n" +
         "into commands compatible with the 7th Sense Server.")
     parser = GooeyParser(description=desc)
+    
 
     # Check if have config file and saved interface
     config = configparser.ConfigParser()
@@ -115,6 +126,11 @@ def main():
     else:
         parser.parse_args()
 
+    log("App started. This app translates the incoming RSS play command (previously for Mediasonic Players) " +
+        "into 7th Sense commands")
+    log("Waiting for 30 secs before beginning connection...")
+
+    time.sleep(30)
     # Main logic for handling the connections and data
     # Handles server multiplexing
     sel = selectors.DefaultSelector()
@@ -136,18 +152,12 @@ def main():
     client_thread = threading.Thread(target=client_thread_function, daemon=True)
     client_thread.start()
 
-    try:
-        while True:
-            # Returns list if server socket is ready for I/O
-            events = sel.select(timeout=1)
-            # Server ready for I/O. Service that boi
-            for key, mask in events:
-                service_connection(key, mask, sel)
-    except KeyboardInterrupt:
-        log("Caught keyboard interrupt, exiting")
-    finally:
-        sel.close()
-
+    while True:
+        # Returns list if server socket is ready for I/O
+        events = sel.select(timeout=None)
+        # Server ready for I/O. Service that boi
+        for key, mask in events:
+            service_connection(key, mask, sel)
         
 # Handles incoming server messages
 def service_connection(key, mask, sel: selectors.DefaultSelector):
@@ -156,28 +166,34 @@ def service_connection(key, mask, sel: selectors.DefaultSelector):
     data = key.data
     # If socket can read 
     if mask & selectors.EVENT_READ:
-        if data == None:
-            # When a new client has connected
-            conn, addr = sock.accept()  # Should be ready to read
-            log(f"Accepted connection from {addr}")
-            conn.setblocking(False)
-            serverdata = types.SimpleNamespace(addr=addr)
-            # Register for only read because just reading from Medialon
-            events = selectors.EVENT_READ
-            sel.register(conn, events, data=serverdata)
-        else:
-            # We've received data
-            recv_data = sock.recv(1024).decode()  # Should be ready to read
-            # If no data, then connection is closed
-            if not recv_data:
-                log(f"Closing connection to {data.addr}")
-                sel.unregister(sock)
-                sock.close()
+        try:
+            if data == None:
+                # When a new client has connected
+                conn, addr = sock.accept()  # Should be ready to read
+                log(f"Accepted connection from {addr}")
+                conn.setblocking(False)
+                serverdata = types.SimpleNamespace(addr=addr)
+                # Register for only read because just reading from Medialon
+                events = selectors.EVENT_READ
+                sel.register(conn, events, data=serverdata)
+            else:
+                # We've received data
+                recv_data = sock.recv(1024).decode()  # Should be ready to read
+                # If no data, then connection is closed
+                if not recv_data:
+                    log(f"Closing connection to {data.addr}")
+                    sel.unregister(sock)
+                    sock.close()
 
-            # Else if received Medialon play command
-            elif 'TCSTART 1!' in recv_data:
-                log("Received timecode start command")
-                send_play = True
+                # Else if received Medialon play command
+                elif 'TCSTART 1!' in recv_data:
+                    log("Received timecode start command")
+                    send_play = True
+        except:
+            log("Connection from client error. Closing socket")
+            sel.unregister(sock)
+            sock.close()
+
     
 # Handles client connection to the Delta app
 def client_thread_function():
@@ -194,7 +210,7 @@ def client_thread_function():
                     send_play = False
                     try:
                         # Send Delta Play command
-                        clientsocket.send(b'PLAY')  
+                        clientsocket.send(b'PLAY\r')  
                         log("Sent Play command to Delta")
                     except:
                         log("Error sending Play command. Delta Server not running? Will attempt reconnect")
