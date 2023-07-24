@@ -9,8 +9,7 @@ We have a server that accepts connections from the Medialon. We use selectors an
 read event, indicating a connection and message.
 
 We simultaneously have a client thread that attempts to make a connection to the Delta Server
-App. (Small aside: selectors in Windows for clients seem to always have a read event, even
-when not connected. Hence using thread for client, which work well anyway)
+App.
 
 When the server sends the specific play command, we set a global flag. The client thread polls 
 this flag, and if true, will send the Delta Play command. 
@@ -31,14 +30,12 @@ import types
 import threading
 import time
 from datetime import datetime
-from gooey import Gooey
+from gooey import Gooey, local_resource_path
 from gooey import GooeyParser
 import configparser
 import os
 import psutil
 import signal
-import sys
-
 
 PROGRAM_NAME = 'Delta Command Utility App v1'
 
@@ -56,20 +53,21 @@ send_play = False
 # IP address of Delta Server
 delta_ip = ''
 
+
 # Main program
 @Gooey(program_name=PROGRAM_NAME, 
        auto_start=True,
        shutdown_signal=signal.SIGTERM,
        disable_stop_button=True, 
-       header_show_subtitle=False,
        show_failure_modal=False,
-       show_stop_warning=False
+       show_stop_warning=False,
+       language='delta',
+       language_dir=local_resource_path('languages/')
        )
 def main():
     desc = ("This app translates the incoming RSS commands \n" +
         "into commands compatible with the 7th Sense Server.")
     parser = GooeyParser(description=desc)
-    
 
     # Check if have config file and saved interface
     config = configparser.ConfigParser()
@@ -186,7 +184,7 @@ def service_connection(key, mask, sel: selectors.DefaultSelector):
                     sock.close()
 
                 # Else if received Medialon play command
-                elif 'TCSTART 1!' in recv_data:
+                elif 'TCSTART 1' in recv_data:
                     log("Received timecode start command")
                     send_play = True
         except:

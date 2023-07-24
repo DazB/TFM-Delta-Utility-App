@@ -1,12 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import gooey
+import os
+
 gooey_root = os.path.dirname(gooey.__file__)
+# Path to delta.json
+gooey_languages = Tree('C:/Users/AbsoluteFX/Nextcloud/AFX Jobs/RWS/USS Refit 2020/2304001 TFM Transformers/Software/Delta Command Utility App/languages' , prefix='/languages')
 
 block_cipher = None
 
-a = Analysis(['app.py'],  # replace me with your path
-             pathex=['C:\\Users\\AbsoluteFX\\Nextcloud\\AFX Jobs\\RWS\\USS Refit 2020\\2304001 TFM Transformers\\Software\\Delta Command Utility App'],
+a = Analysis(['app.py'],  
+             pathex=['C:\\Users\\AbsoluteFX\\Nextcloud\\AFX Jobs\\RWS\\USS Refit 2020\\2304001 TFM Transformers\\Software\\Delta Command Utility App'], # path
              binaries=[],
              datas=[],
              hiddenimports=[],
@@ -25,6 +29,7 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,
           [('u', None, 'OPTION')],
+          gooey_languages,
           name='DeltaCommandApp',
           debug=False,
           bootloader_ignore_signals=False,
