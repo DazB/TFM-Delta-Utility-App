@@ -48,8 +48,15 @@ INI_CONFIG_PATH = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop
 INI_SECTION_NETWORK = 'Network'
 INI_CONTROL_INTERFACE = 'control_network_interface'
 
-# Send play flag. If true, will send command to play to Delta
+# Send play flag. If true, will send command to play Delta
 send_play = False
+# Send stop flag. If true, will send command to stop Delta
+send_stop = False
+# Display grid flag. If true, will send command to display grid
+display_grid = False
+# Display show flag. If true, will send command to display show
+display_show = False
+
 # IP address of Delta Server
 delta_ip = ''
 
@@ -126,9 +133,7 @@ def main():
 
     log("App started. This app translates the incoming RSS play command (previously for Mediasonic Players) " +
         "into 7th Sense commands")
-    log("Waiting for 30 secs before beginning connection...")
 
-    time.sleep(30)
     # Main logic for handling the connections and data
     # Handles server multiplexing
     sel = selectors.DefaultSelector()
@@ -160,6 +165,10 @@ def main():
 # Handles incoming server messages
 def service_connection(key, mask, sel: selectors.DefaultSelector):
     global send_play
+    global send_stop
+    global display_grid
+    global display_show
+
     sock: socket.socket = key.fileobj
     data = key.data
     # If socket can read 
@@ -176,7 +185,8 @@ def service_connection(key, mask, sel: selectors.DefaultSelector):
                 sel.register(conn, events, data=serverdata)
             else:
                 # We've received data
-                recv_data = sock.recv(1024).decode()  # Should be ready to read
+                recv_data = sock.recv(1024).decode().lower()  # Should be ready to read
+                # log(f'data: {recv_data}')
                 # If no data, then connection is closed
                 if not recv_data:
                     log(f"Closing connection to {data.addr}")
@@ -184,9 +194,30 @@ def service_connection(key, mask, sel: selectors.DefaultSelector):
                     sock.close()
 
                 # Else if received Medialon play command
-                elif 'TCSTART 1' in recv_data:
+                elif 'tcstart 1' in recv_data:
                     log("Received timecode start command")
                     send_play = True
+
+                elif 'play 1' in recv_data:
+                    log("Received play command")
+                    send_play = True
+
+                elif 'pause 1' in recv_data:
+                    log("Received pause command")
+                    send_stop = True
+
+                elif 'stop 1' in recv_data:
+                    log("Received stop command")
+                    send_stop = True
+
+                elif 'loadplaylist 1 grid' in recv_data:
+                    log("Received display grid command")
+                    display_grid = True
+
+                elif 'loadplaylist 1 1' in recv_data:
+                    log("Received display show command")
+                    display_show = True
+
         except:
             log("Connection from client error. Closing socket")
             sel.unregister(sock)
@@ -196,7 +227,11 @@ def service_connection(key, mask, sel: selectors.DefaultSelector):
 # Handles client connection to the Delta app
 def client_thread_function():
     global send_play
+    global send_stop
+    global display_grid
+    global display_show
     global delta_ip
+
     while True:
         try: 
             # Setup client socket so can send data to Delta Server.
@@ -207,12 +242,43 @@ def client_thread_function():
                 if send_play:
                     send_play = False
                     try:
+                        log("Sending Play command to Delta")
                         # Send Delta Play command
                         clientsocket.send(b'PLAY\r')  
-                        log("Sent Play command to Delta")
                     except:
                         log("Error sending Play command. Delta Server not running? Will attempt reconnect")
                         break
+
+                if send_stop:
+                    send_stop = False
+                    try:
+                        log("Sending Stop command to Delta")
+                        # Send Delta Stop command
+                        clientsocket.send(b'STOP\r')  
+                    except:
+                        log("Error sending Stop command. Delta Server not running? Will attempt reconnect")
+                        break
+                
+                if display_grid:
+                    display_grid = False
+                    try:
+                        log("Sending display grid command to Delta")
+                        # Send Delta command
+                        clientsocket.send(b"GOTOMARKER 'Grid'\r")  
+                    except:
+                        log("Error sending display grid command. Delta Server not running? Will attempt reconnect")
+                        break
+
+                if display_show:
+                    display_show = False
+                    try:
+                        log("Sending display show command to Delta")
+                        # Send Delta command
+                        clientsocket.send(b'GOTOFRAME 1\r')  
+                    except:
+                        log("Error sending display show command. Delta Server not running? Will attempt reconnect")
+                        break
+
                 time.sleep(0.01)
         except:
             # Connection was refused, wait for some time before retrying

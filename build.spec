@@ -4,13 +4,14 @@ import gooey
 import os
 
 gooey_root = os.path.dirname(gooey.__file__)
+root = os.getcwd()
 # Path to delta.json
-gooey_languages = Tree('C:/Users/AbsoluteFX/Nextcloud/AFX Jobs/RWS/USS Refit 2020/2304001 TFM Transformers/Software/Delta Command Utility App/languages' , prefix='/languages')
+gooey_languages = Tree(f'{root}/languages' , prefix='/languages')
 
 block_cipher = None
 
 a = Analysis(['app.py'],  
-             pathex=['C:\\Users\\AbsoluteFX\\Nextcloud\\AFX Jobs\\RWS\\USS Refit 2020\\2304001 TFM Transformers\\Software\\Delta Command Utility App'], # path
+             pathex=[root], # path
              binaries=[],
              datas=[],
              hiddenimports=[],
