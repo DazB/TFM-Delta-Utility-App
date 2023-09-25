@@ -54,8 +54,8 @@ send_play = False
 send_stop = False
 # Display grid flag. If true, will send command to display grid
 display_grid = False
-# Display show flag. If true, will send command to display show
-display_show = False
+# Cue show flag. If true, will send command to cue show
+cue_show = False
 
 # IP address of Delta Server
 delta_ip = ''
@@ -167,7 +167,7 @@ def service_connection(key, mask, sel: selectors.DefaultSelector):
     global send_play
     global send_stop
     global display_grid
-    global display_show
+    global cue_show
 
     sock: socket.socket = key.fileobj
     data = key.data
@@ -215,8 +215,8 @@ def service_connection(key, mask, sel: selectors.DefaultSelector):
                     display_grid = True
 
                 elif 'loadplaylist 1 1' in recv_data:
-                    log("Received display show command")
-                    display_show = True
+                    log("Received cue show command")
+                    cue_show = True
 
         except:
             log("Connection from client error. Closing socket")
@@ -229,7 +229,7 @@ def client_thread_function():
     global send_play
     global send_stop
     global display_grid
-    global display_show
+    global cue_show
     global delta_ip
 
     while True:
@@ -246,7 +246,7 @@ def client_thread_function():
                         # Send Delta Play command
                         clientsocket.send(b'PLAY\r')  
                     except:
-                        log("Error sending Play command. Delta Server not running? Will attempt reconnect")
+                        log("Error sending Play command.")
                         break
 
                 if send_stop:
@@ -256,7 +256,7 @@ def client_thread_function():
                         # Send Delta Stop command
                         clientsocket.send(b'STOP\r')  
                     except:
-                        log("Error sending Stop command. Delta Server not running? Will attempt reconnect")
+                        log("Error sending Stop command.")
                         break
                 
                 if display_grid:
@@ -266,17 +266,19 @@ def client_thread_function():
                         # Send Delta command
                         clientsocket.send(b"GOTOMARKER 'Grid'\r")  
                     except:
-                        log("Error sending display grid command. Delta Server not running? Will attempt reconnect")
+                        log("Error sending display grid command.")
                         break
 
-                if display_show:
-                    display_show = False
+                if cue_show:
+                    cue_show = False
                     try:
-                        log("Sending display show command to Delta")
+                        log("Sending cue show command to Delta")
                         # Send Delta command
                         clientsocket.send(b'GOTOFRAME 1\r')  
+                        time.sleep(0.5)
+                        clientsocket.send(b'CUE\r')
                     except:
-                        log("Error sending display show command. Delta Server not running? Will attempt reconnect")
+                        log("Error sending cue show command.")
                         break
 
                 time.sleep(0.01)
